@@ -1,0 +1,1416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ResMod</title>
+  <style>
+    :root {
+      --bg: #1a1a2e;
+      --bg2: #16213e;
+      --bg3: #0f3460;
+      --surface: #1e2a45;
+      --surface2: #243454;
+      --border: #2e4070;
+      --accent: #e94560;
+      --accent2: #0f7ae5;
+      --text: #e0e6f0;
+      --text2: #8899bb;
+      --text3: #556080;
+      --green: #4ade80;
+      --yellow: #fbbf24;
+      --red: #f87171;
+      --orange: #fb923c;
+      --purple: #a78bfa;
+      --cyan: #22d3ee;
+      --radius: 8px;
+      --radius-sm: 4px;
+      --font-mono: 'Courier New', Courier, monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ===== TOP BAR ===== */
+    .topbar {
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      padding: 0 16px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+    .topbar-logo {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 1px;
+      white-space: nowrap;
+    }
+    .topbar-logo span { color: var(--text); }
+    .topbar-actions { margin-left: auto; display: flex; gap: 8px; }
+
+    /* ===== LAYOUT ===== */
+    .main-layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ===== SIDEBAR ===== */
+    .sidebar {
+      width: 260px;
+      min-width: 200px;
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .sidebar-header {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text2);
+      font-weight: 600;
+    }
+    .sidebar-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 0;
+    }
+    .history-item {
+      padding: 8px 14px;
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+      margin: 0 6px 2px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.15s;
+    }
+    .history-item:hover { background: var(--surface2); }
+    .history-item.active { background: var(--surface2); border-left: 2px solid var(--accent2); }
+    .history-item .h-method {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 5px;
+      border-radius: 3px;
+      min-width: 44px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .history-item .h-url {
+      font-size: 12px;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .history-item .h-status {
+      margin-left: auto;
+      font-size: 10px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .empty-history {
+      padding: 24px 14px;
+      text-align: center;
+      color: var(--text3);
+      font-size: 12px;
+    }
+
+    /* ===== CONTENT AREA ===== */
+    .content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ===== REQUEST PANEL ===== */
+    .request-panel {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+      flex-shrink: 0;
+    }
+
+    .url-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .method-select {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 700;
+      padding: 0 12px;
+      height: 40px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      outline: none;
+      min-width: 110px;
+    }
+    .method-select:focus { border-color: var(--accent2); }
+
+    .url-input {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 13px;
+      padding: 0 12px;
+      height: 40px;
+      border-radius: var(--radius-sm);
+      outline: none;
+      font-family: var(--font-mono);
+    }
+    .url-input:focus { border-color: var(--accent2); }
+    .url-input::placeholder { color: var(--text3); }
+
+    .btn-send {
+      background: var(--accent);
+      border: none;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 0 24px;
+      height: 40px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: opacity 0.15s;
+      white-space: nowrap;
+      letter-spacing: 0.5px;
+    }
+    .btn-send:hover { opacity: 0.88; }
+    .btn-send:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text2);
+      font-size: 12px;
+      padding: 0 12px;
+      height: 30px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+
+    /* Timeout row */
+    .meta-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-top: 8px;
+    }
+    .meta-row label {
+      font-size: 11px;
+      color: var(--text2);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .meta-input {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 12px;
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+      outline: none;
+      width: 70px;
+      height: 26px;
+    }
+    .meta-input:focus { border-color: var(--accent2); }
+
+    /* ===== TABS ===== */
+    .tabs {
+      display: flex;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      padding: 0 16px;
+      flex-shrink: 0;
+    }
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--text2);
+      font-size: 13px;
+      padding: 10px 14px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+      position: relative;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--text); border-bottom-color: var(--accent2); }
+    .tab-badge {
+      background: var(--accent2);
+      color: #fff;
+      font-size: 9px;
+      font-weight: 700;
+      border-radius: 10px;
+      padding: 1px 5px;
+      margin-left: 5px;
+      vertical-align: middle;
+    }
+
+    /* ===== TAB PANELS ===== */
+    .tab-panel { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+    .tab-panel.active { display: flex; }
+
+    .tab-body {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ===== KV EDITOR (Headers / Params) ===== */
+    .kv-editor {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 16px;
+    }
+    .kv-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .kv-row input {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 12px;
+      padding: 5px 10px;
+      border-radius: var(--radius-sm);
+      outline: none;
+      height: 32px;
+      font-family: var(--font-mono);
+    }
+    .kv-row input:focus { border-color: var(--accent2); }
+    .kv-row input::placeholder { color: var(--text3); }
+    .kv-row input.key-input { max-width: 220px; }
+    .kv-check {
+      width: 14px;
+      height: 14px;
+      accent-color: var(--accent2);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .btn-del-row {
+      background: none;
+      border: none;
+      color: var(--text3);
+      font-size: 16px;
+      cursor: pointer;
+      padding: 0 4px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .btn-del-row:hover { color: var(--red); }
+    .kv-add-row {
+      padding: 4px 16px 12px;
+    }
+
+    /* ===== BODY EDITOR ===== */
+    .body-toolbar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+    .body-type-group {
+      display: flex;
+      gap: 4px;
+    }
+    .body-type-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text2);
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .body-type-btn.active {
+      background: var(--accent2);
+      border-color: var(--accent2);
+      color: #fff;
+    }
+
+    .body-editor-wrap {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+    .body-textarea {
+      flex: 1;
+      width: 100%;
+      background: var(--bg);
+      color: var(--text);
+      border: none;
+      resize: none;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      padding: 12px 16px;
+      outline: none;
+      line-height: 1.6;
+    }
+    .body-textarea::placeholder { color: var(--text3); }
+
+    /* Form data table */
+    .form-data-editor {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 16px;
+    }
+
+    /* ===== RESPONSE PANEL ===== */
+    .response-panel {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      border-top: 1px solid var(--border);
+    }
+
+    .response-bar {
+      padding: 8px 16px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+    .response-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text2);
+      font-weight: 600;
+    }
+    .status-badge {
+      font-size: 13px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: var(--radius-sm);
+    }
+    .stat-chip {
+      font-size: 11px;
+      color: var(--text2);
+      background: var(--surface);
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+    }
+    .stat-chip span { color: var(--text); font-weight: 600; }
+
+    .response-tabs { margin-left: 0; }
+    .resp-copy-btn { margin-left: auto; }
+
+    .resp-tab-btn {
+      background: none;
+      border: none;
+      color: var(--text2);
+      font-size: 12px;
+      padding: 4px 10px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .resp-tab-btn:hover { color: var(--text); }
+    .resp-tab-btn.active { color: var(--text); border-bottom-color: var(--green); }
+
+    .resp-body {
+      flex: 1;
+      overflow: auto;
+      padding: 12px 16px;
+      background: var(--bg);
+    }
+    .resp-body pre {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .resp-placeholder {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text3);
+      gap: 12px;
+    }
+    .resp-placeholder svg { opacity: 0.3; }
+    .resp-placeholder p { font-size: 13px; }
+
+    .loading-indicator {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      color: var(--text2);
+    }
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent2);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===== HEADERS TABLE ===== */
+    .headers-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      font-family: var(--font-mono);
+    }
+    .headers-table th {
+      text-align: left;
+      padding: 6px 10px;
+      color: var(--text2);
+      font-size: 10px;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg2);
+      letter-spacing: 1px;
+    }
+    .headers-table td {
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      word-break: break-all;
+    }
+    .headers-table td:first-child { color: var(--cyan); width: 35%; }
+    .headers-table td:last-child { color: var(--text); }
+
+    /* ===== SYNTAX HIGHLIGHT ===== */
+    .json-key { color: var(--cyan); }
+    .json-string { color: var(--green); }
+    .json-number { color: var(--yellow); }
+    .json-bool { color: var(--purple); }
+    .json-null { color: var(--text2); }
+
+    /* ===== SCROLLBAR ===== */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+    /* ===== UTILS ===== */
+    .color-get { color: #61affe; }
+    .color-post { color: #49cc90; }
+    .color-put { color: #fca130; }
+    .color-patch { color: #50e3c2; }
+    .color-delete { color: #f93e3e; }
+    .color-head { color: #9012fe; }
+    .color-options { color: #0d5aa7; }
+
+    .bg-get { background: #1a3a5c; color: #61affe; }
+    .bg-post { background: #1a3d2f; color: #49cc90; }
+    .bg-put { background: #3d2e10; color: #fca130; }
+    .bg-patch { background: #153d38; color: #50e3c2; }
+    .bg-delete { background: #3d1212; color: #f93e3e; }
+    .bg-head { background: #2d1a4d; color: #9012fe; }
+    .bg-options { background: #0d2a4a; color: #0d5aa7; }
+
+    .status-2xx { background: #1a3d2f; color: #4ade80; }
+    .status-3xx { background: #3d3210; color: #fbbf24; }
+    .status-4xx { background: #3d1a1a; color: #f87171; }
+    .status-5xx { background: #2d1a1a; color: #f87171; }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 8px 0;
+    }
+
+    .resize-handle {
+      width: 4px;
+      background: transparent;
+      cursor: col-resize;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    .resize-handle:hover { background: var(--accent2); }
+
+    /* Notification */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 18px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      z-index: 9999;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.25s;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    .req-resp-split {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .req-section {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 160px;
+    }
+
+    .splitter {
+      height: 6px;
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      cursor: ns-resize;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .splitter:hover { background: var(--surface2); }
+    .splitter::after {
+      content: '';
+      width: 40px;
+      height: 2px;
+      background: var(--border);
+      border-radius: 2px;
+    }
+
+    .no-select { user-select: none; }
+
+    @media (max-width: 700px) {
+      .sidebar { display: none; }
+      .meta-row { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-logo">ResMod</div>
+    <div class="topbar-actions">
+      <button class="btn-ghost" id="btn-new-request">+ New Request</button>
+      <button class="btn-ghost" id="btn-clear-history">Clear History</button>
+    </div>
+  </div>
+
+  <!-- MAIN LAYOUT -->
+  <div class="main-layout">
+
+    <!-- SIDEBAR (History) -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        History
+        <span id="history-count" style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0;">0 requests</span>
+      </div>
+      <div class="sidebar-list" id="history-list">
+        <div class="empty-history" id="empty-history">No requests yet.<br>Send your first one!</div>
+      </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="content">
+
+      <!-- REQUEST PANEL -->
+      <div class="request-panel">
+        <div class="url-row">
+          <select class="method-select" id="method-select">
+            <option value="GET">GET</option>
+            <option value="POST">POST</option>
+            <option value="PUT">PUT</option>
+            <option value="PATCH">PATCH</option>
+            <option value="DELETE">DELETE</option>
+            <option value="HEAD">HEAD</option>
+            <option value="OPTIONS">OPTIONS</option>
+          </select>
+          <input class="url-input" id="url-input" type="text" placeholder="https://api.example.com/v1/resource" autocomplete="off" spellcheck="false" />
+          <button class="btn-send" id="btn-send">Send</button>
+        </div>
+        <div class="meta-row">
+          <label>Timeout (ms) <input class="meta-input" id="timeout-input" type="number" value="30000" min="500" max="300000" /></label>
+          <label style="margin-left:8px;">
+            <input type="checkbox" id="follow-redirects" checked style="accent-color:var(--accent2);cursor:pointer;" />
+            Follow Redirects
+          </label>
+        </div>
+      </div>
+
+      <!-- REQ/RESP SPLIT AREA -->
+      <div class="req-resp-split">
+
+        <!-- REQUEST TABS -->
+        <div class="req-section" id="req-section" style="height:240px;">
+          <div class="tabs" id="req-tabs">
+            <button class="tab-btn active" data-tab="headers">Headers <span class="tab-badge" id="headers-badge" style="display:none;"></span></button>
+            <button class="tab-btn" data-tab="params">Query Params <span class="tab-badge" id="params-badge" style="display:none;"></span></button>
+            <button class="tab-btn" data-tab="body">Body</button>
+            <button class="tab-btn" data-tab="auth">Auth</button>
+          </div>
+
+          <div class="tab-body">
+            <!-- Headers Tab -->
+            <div class="tab-panel active" id="tab-headers">
+              <div class="kv-editor" id="headers-editor"></div>
+              <div class="kv-add-row">
+                <button class="btn-ghost" id="add-header-btn">+ Add Header</button>
+              </div>
+            </div>
+
+            <!-- Params Tab -->
+            <div class="tab-panel" id="tab-params">
+              <div class="kv-editor" id="params-editor"></div>
+              <div class="kv-add-row">
+                <button class="btn-ghost" id="add-param-btn">+ Add Param</button>
+              </div>
+            </div>
+
+            <!-- Body Tab -->
+            <div class="tab-panel" id="tab-body">
+              <div class="body-toolbar">
+                <div class="body-type-group" id="body-type-group">
+                  <button class="body-type-btn active" data-type="none">none</button>
+                  <button class="body-type-btn" data-type="json">JSON</button>
+                  <button class="body-type-btn" data-type="text">Text</button>
+                  <button class="body-type-btn" data-type="xml">XML</button>
+                  <button class="body-type-btn" data-type="form">Form</button>
+                </div>
+                <button class="btn-ghost" id="btn-format-json" style="display:none;margin-left:8px;">Format JSON</button>
+              </div>
+              <div class="body-editor-wrap" id="body-editor-wrap">
+                <div id="body-none" style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:13px;">
+                  This request has no body
+                </div>
+                <textarea class="body-textarea" id="body-textarea" style="display:none;" placeholder="Enter request body..."></textarea>
+                <div id="form-data-panel" style="display:none;flex:1;overflow:hidden;display:none;flex-direction:column;">
+                  <div class="form-data-editor" id="form-data-editor"></div>
+                  <div class="kv-add-row">
+                    <button class="btn-ghost" id="add-form-btn">+ Add Field</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Auth Tab -->
+            <div class="tab-panel" id="tab-auth">
+              <div style="padding:14px 16px;">
+                <div style="margin-bottom:12px;">
+                  <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px;">Auth Type</label>
+                  <select id="auth-type" style="background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:13px;padding:6px 10px;border-radius:var(--radius-sm);outline:none;min-width:180px;">
+                    <option value="none">No Auth</option>
+                    <option value="bearer">Bearer Token</option>
+                    <option value="basic">Basic Auth</option>
+                    <option value="apikey">API Key</option>
+                  </select>
+                </div>
+                <div id="auth-bearer" style="display:none;">
+                  <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px;">Token</label>
+                  <input id="auth-bearer-token" type="text" placeholder="Enter bearer token..." style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:13px;padding:8px 12px;border-radius:var(--radius-sm);outline:none;font-family:var(--font-mono);" />
+                </div>
+                <div id="auth-basic" style="display:none;display:flex;gap:12px;flex-wrap:wrap;">
+                  <div style="flex:1;min-width:150px;">
+                    <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px;">Username</label>
+                    <input id="auth-basic-user" type="text" placeholder="Username" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:13px;padding:8px 12px;border-radius:var(--radius-sm);outline:none;" />
+                  </div>
+                  <div style="flex:1;min-width:150px;">
+                    <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px;">Password</label>
+                    <input id="auth-basic-pass" type="password" placeholder="Password" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:13px;padding:8px 12px;border-radius:var(--radius-sm);outline:none;" />
+                  </div>
+                </div>
+                <div id="auth-apikey" style="display:none;">
+                  <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                    <div style="flex:1;min-width:150px;">
+                      <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px;">Key Name</label>
+                      <input id="auth-apikey-name" type="text" placeholder="X-API-Key" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:13px;padding:8px 12px;border-radius:var(--radius-sm);outline:none;" />
+                    </div>
+                    <div style="flex:1;min-width:150px;">
+                      <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px;">Value</label>
+                      <input id="auth-apikey-value" type="text" placeholder="your-api-key" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:13px;padding:8px 12px;border-radius:var(--radius-sm);outline:none;font-family:var(--font-mono);" />
+                    </div>
+                    <div style="min-width:130px;">
+                      <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px;">Add To</label>
+                      <select id="auth-apikey-in" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:13px;padding:8px 10px;border-radius:var(--radius-sm);outline:none;">
+                        <option value="header">Header</option>
+                        <option value="query">Query Param</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SPLITTER -->
+        <div class="splitter" id="splitter"></div>
+
+        <!-- RESPONSE PANEL -->
+        <div class="response-panel" id="resp-panel">
+          <div id="resp-placeholder" class="resp-placeholder">
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <p>Send a request to see the response here</p>
+          </div>
+          <div id="loading-indicator" class="loading-indicator">
+            <div class="spinner"></div>
+            <span id="loading-text">Sending request...</span>
+          </div>
+          <div id="resp-content" style="display:none;flex:1;overflow:hidden;flex-direction:column;">
+            <div class="response-bar">
+              <div class="response-title">Response</div>
+              <div class="status-badge" id="resp-status-badge"></div>
+              <div class="stat-chip">Time: <span id="resp-time">-</span></div>
+              <div class="stat-chip">Size: <span id="resp-size">-</span></div>
+              <div style="display:flex;gap:4px;margin-left:4px;" class="response-tabs">
+                <button class="resp-tab-btn active" data-resp-tab="body">Body</button>
+                <button class="resp-tab-btn" data-resp-tab="headers">Headers</button>
+                <button class="resp-tab-btn" data-resp-tab="raw">Raw</button>
+              </div>
+              <button class="btn-ghost resp-copy-btn" id="btn-copy-resp">Copy</button>
+            </div>
+            <div class="resp-body" id="resp-body-panel">
+              <pre id="resp-body-pre"></pre>
+            </div>
+            <div class="resp-body" id="resp-headers-panel" style="display:none;">
+              <table class="headers-table" id="resp-headers-table">
+                <thead><tr><th>Header</th><th>Value</th></tr></thead>
+                <tbody id="resp-headers-body"></tbody>
+              </table>
+            </div>
+            <div class="resp-body" id="resp-raw-panel" style="display:none;">
+              <pre id="resp-raw-pre"></pre>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+  (() => {
+    // ===== STATE =====
+    let history = JSON.parse(localStorage.getItem('resmod_history') || '[]');
+    let activeHistoryIndex = -1;
+    let currentResponse = null;
+    let bodyType = 'none';
+    let abortTimer = null;
+
+    // ===== DOM REFS =====
+    const methodSelect = document.getElementById('method-select');
+    const urlInput = document.getElementById('url-input');
+    const btnSend = document.getElementById('btn-send');
+    const timeoutInput = document.getElementById('timeout-input');
+    const headersEditor = document.getElementById('headers-editor');
+    const paramsEditor = document.getElementById('params-editor');
+    const formDataEditor = document.getElementById('form-data-editor');
+    const bodyTextarea = document.getElementById('body-textarea');
+    const historyList = document.getElementById('history-list');
+    const emptyHistory = document.getElementById('empty-history');
+    const historyCount = document.getElementById('history-count');
+    const respPlaceholder = document.getElementById('resp-placeholder');
+    const loadingIndicator = document.getElementById('loading-indicator');
+    const respContent = document.getElementById('resp-content');
+    const respStatusBadge = document.getElementById('resp-status-badge');
+    const respTime = document.getElementById('resp-time');
+    const respSize = document.getElementById('resp-size');
+    const respBodyPre = document.getElementById('resp-body-pre');
+    const respRawPre = document.getElementById('resp-raw-pre');
+    const respHeadersBody = document.getElementById('resp-headers-body');
+    const toast = document.getElementById('toast');
+
+    // ===== HELPERS =====
+    function showToast(msg, duration = 2200) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), duration);
+    }
+
+    function formatBytes(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / 1024 / 1024).toFixed(2) + ' MB';
+    }
+
+    function getMethodClass(method) {
+      return 'bg-' + method.toLowerCase();
+    }
+
+    function statusClass(code) {
+      if (code >= 200 && code < 300) return 'status-2xx';
+      if (code >= 300 && code < 400) return 'status-3xx';
+      if (code >= 400 && code < 500) return 'status-4xx';
+      return 'status-5xx';
+    }
+
+    function statusColor(code) {
+      if (code >= 200 && code < 300) return 'var(--green)';
+      if (code >= 300 && code < 400) return 'var(--yellow)';
+      if (code >= 400 && code < 500) return 'var(--red)';
+      return 'var(--red)';
+    }
+
+    function syntaxHighlightJson(json) {
+      if (typeof json !== 'string') json = JSON.stringify(json, null, 2);
+      return json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, (match) => {
+          let cls = 'json-number';
+          if (/^"/.test(match)) {
+            cls = /:$/.test(match) ? 'json-key' : 'json-string';
+          } else if (/true|false/.test(match)) {
+            cls = 'json-bool';
+          } else if (/null/.test(match)) {
+            cls = 'json-null';
+          }
+          return '<span class="' + cls + '">' + match + '</span>';
+        });
+    }
+
+    // ===== KV EDITOR HELPERS =====
+    function createKvRow(container, keyPlaceholder, valuePlaceholder, key = '', value = '', enabled = true) {
+      const row = document.createElement('div');
+      row.className = 'kv-row';
+      row.innerHTML = `
+        <input type="checkbox" class="kv-check" ${enabled ? 'checked' : ''} title="Enable/Disable" />
+        <input type="text" class="key-input" placeholder="${keyPlaceholder}" value="${escapeAttr(key)}" autocomplete="off" spellcheck="false" />
+        <input type="text" placeholder="${valuePlaceholder}" value="${escapeAttr(value)}" autocomplete="off" spellcheck="false" />
+        <button class="btn-del-row" title="Remove">×</button>
+      `;
+      row.querySelector('.btn-del-row').addEventListener('click', () => {
+        row.remove();
+        updateBadges();
+      });
+      row.querySelectorAll('input').forEach(i => i.addEventListener('input', updateBadges));
+      container.appendChild(row);
+      return row;
+    }
+
+    function escapeAttr(str) {
+      return String(str).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function getKvRows(container) {
+      const rows = [];
+      container.querySelectorAll('.kv-row').forEach(row => {
+        const inputs = row.querySelectorAll('input[type="text"]');
+        const enabled = row.querySelector('.kv-check').checked;
+        const key = inputs[0].value.trim();
+        const value = inputs[1].value.trim();
+        if (key) rows.push({ key, value, enabled });
+      });
+      return rows;
+    }
+
+    function clearKvEditor(container) {
+      container.innerHTML = '';
+    }
+
+    function updateBadges() {
+      const headerRows = getKvRows(headersEditor).filter(r => r.enabled);
+      const paramRows = getKvRows(paramsEditor).filter(r => r.enabled);
+      const hBadge = document.getElementById('headers-badge');
+      const pBadge = document.getElementById('params-badge');
+      if (headerRows.length > 0) { hBadge.textContent = headerRows.length; hBadge.style.display = ''; }
+      else { hBadge.style.display = 'none'; }
+      if (paramRows.length > 0) { pBadge.textContent = paramRows.length; pBadge.style.display = ''; }
+      else { pBadge.style.display = 'none'; }
+    }
+
+    // ===== TABS =====
+    document.getElementById('req-tabs').addEventListener('click', (e) => {
+      const btn = e.target.closest('.tab-btn');
+      if (!btn) return;
+      const tab = btn.dataset.tab;
+      document.querySelectorAll('#req-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('tab-' + tab).classList.add('active');
+    });
+
+    // Response tabs
+    document.querySelector('.response-bar').addEventListener('click', (e) => {
+      const btn = e.target.closest('.resp-tab-btn');
+      if (!btn) return;
+      const tab = btn.dataset.respTab;
+      document.querySelectorAll('.resp-tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('resp-body-panel').style.display = tab === 'body' ? '' : 'none';
+      document.getElementById('resp-headers-panel').style.display = tab === 'headers' ? '' : 'none';
+      document.getElementById('resp-raw-panel').style.display = tab === 'raw' ? '' : 'none';
+    });
+
+    // ===== BODY TYPE =====
+    document.getElementById('body-type-group').addEventListener('click', (e) => {
+      const btn = e.target.closest('.body-type-btn');
+      if (!btn) return;
+      bodyType = btn.dataset.type;
+      document.querySelectorAll('.body-type-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const noneDiv = document.getElementById('body-none');
+      const textarea = document.getElementById('body-textarea');
+      const formPanel = document.getElementById('form-data-panel');
+      const fmtBtn = document.getElementById('btn-format-json');
+      noneDiv.style.display = bodyType === 'none' ? 'flex' : 'none';
+      textarea.style.display = (bodyType !== 'none' && bodyType !== 'form') ? '' : 'none';
+      formPanel.style.display = bodyType === 'form' ? 'flex' : 'none';
+      fmtBtn.style.display = bodyType === 'json' ? '' : 'none';
+      if (bodyType === 'json' && !bodyTextarea.value.trim()) {
+        bodyTextarea.placeholder = '{\n  "key": "value"\n}';
+      } else if (bodyType === 'xml') {
+        bodyTextarea.placeholder = '<?xml version="1.0"?>\n<root>\n  <element>value</element>\n</root>';
+      } else {
+        bodyTextarea.placeholder = 'Enter request body...';
+      }
+    });
+
+    document.getElementById('btn-format-json').addEventListener('click', () => {
+      try {
+        const parsed = JSON.parse(bodyTextarea.value);
+        bodyTextarea.value = JSON.stringify(parsed, null, 2);
+      } catch {
+        showToast('Invalid JSON — cannot format');
+      }
+    });
+
+    // ===== AUTH =====
+    document.getElementById('auth-type').addEventListener('change', function () {
+      ['bearer', 'basic', 'apikey'].forEach(t => {
+        document.getElementById('auth-' + t).style.display = this.value === t ? '' : 'none';
+      });
+    });
+
+    // ===== ADD KV ROWS =====
+    document.getElementById('add-header-btn').addEventListener('click', () => {
+      createKvRow(headersEditor, 'Header Name', 'Header Value');
+    });
+    document.getElementById('add-param-btn').addEventListener('click', () => {
+      createKvRow(paramsEditor, 'Param Name', 'Param Value');
+    });
+    document.getElementById('add-form-btn').addEventListener('click', () => {
+      createKvRow(formDataEditor, 'Field Name', 'Field Value');
+    });
+
+    // ===== BUILD REQUEST =====
+    function buildRequest() {
+      const method = methodSelect.value;
+      let targetUrl = urlInput.value.trim();
+
+      if (!targetUrl) return null;
+      if (!/^https?:\/\//i.test(targetUrl)) targetUrl = 'https://' + targetUrl;
+
+      // Query params
+      const params = getKvRows(paramsEditor).filter(r => r.enabled);
+      if (params.length > 0) {
+        try {
+          const u = new URL(targetUrl);
+          params.forEach(p => u.searchParams.set(p.key, p.value));
+          targetUrl = u.toString();
+        } catch {}
+      }
+
+      // Headers
+      const headers = {};
+      getKvRows(headersEditor).filter(r => r.enabled).forEach(h => { headers[h.key] = h.value; });
+
+      // Auth
+      const authType = document.getElementById('auth-type').value;
+      if (authType === 'bearer') {
+        const token = document.getElementById('auth-bearer-token').value.trim();
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+      } else if (authType === 'basic') {
+        const user = document.getElementById('auth-basic-user').value;
+        const pass = document.getElementById('auth-basic-pass').value;
+        headers['Authorization'] = 'Basic ' + btoa(user + ':' + pass);
+      } else if (authType === 'apikey') {
+        const keyName = document.getElementById('auth-apikey-name').value.trim();
+        const keyVal = document.getElementById('auth-apikey-value').value.trim();
+        const keyIn = document.getElementById('auth-apikey-in').value;
+        if (keyName && keyVal) {
+          if (keyIn === 'header') {
+            headers[keyName] = keyVal;
+          } else {
+            try {
+              const u = new URL(targetUrl);
+              u.searchParams.set(keyName, keyVal);
+              targetUrl = u.toString();
+            } catch {}
+          }
+        }
+      }
+
+      // Body
+      let body = null;
+      if (bodyType === 'json') {
+        body = bodyTextarea.value.trim();
+        if (body && !headers['Content-Type'] && !headers['content-type'])
+          headers['Content-Type'] = 'application/json';
+      } else if (bodyType === 'text') {
+        body = bodyTextarea.value;
+        if (body && !headers['Content-Type'] && !headers['content-type'])
+          headers['Content-Type'] = 'text/plain';
+      } else if (bodyType === 'xml') {
+        body = bodyTextarea.value.trim();
+        if (body && !headers['Content-Type'] && !headers['content-type'])
+          headers['Content-Type'] = 'application/xml';
+      } else if (bodyType === 'form') {
+        const formRows = getKvRows(formDataEditor).filter(r => r.enabled);
+        if (formRows.length > 0) {
+          const params = new URLSearchParams();
+          formRows.forEach(f => params.append(f.key, f.value));
+          body = params.toString();
+          if (!headers['Content-Type'] && !headers['content-type'])
+            headers['Content-Type'] = 'application/x-www-form-urlencoded';
+        }
+      }
+
+      return {
+        targetUrl,
+        method,
+        headers,
+        body: body || '',
+        timeout: parseInt(timeoutInput.value, 10) || 30000,
+        followRedirects: document.getElementById('follow-redirects').checked,
+      };
+    }
+
+    // ===== SEND REQUEST =====
+    async function sendRequest() {
+      const reqData = buildRequest();
+      if (!reqData) { showToast('Please enter a URL'); return; }
+
+      btnSend.disabled = true;
+      btnSend.textContent = 'Sending...';
+      respPlaceholder.style.display = 'none';
+      loadingIndicator.style.display = 'flex';
+      respContent.style.display = 'none';
+      document.getElementById('loading-text').textContent = `${reqData.method} ${reqData.targetUrl}`;
+
+      const startTs = Date.now();
+
+      try {
+        const res = await fetch('/api/proxy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(reqData),
+        });
+
+        const data = await res.json();
+        const elapsed = Date.now() - startTs;
+
+        if (data.error) {
+          showErrorResponse(data.error, data.details);
+        } else {
+          showResponse(data, reqData);
+          saveHistory(reqData, data);
+        }
+      } catch (err) {
+        showErrorResponse('Network Error', err.message);
+      } finally {
+        btnSend.disabled = false;
+        btnSend.textContent = 'Send';
+        loadingIndicator.style.display = 'none';
+      }
+    }
+
+    function showResponse(data, reqData) {
+      currentResponse = data;
+      loadingIndicator.style.display = 'none';
+      respContent.style.display = 'flex';
+
+      // Status
+      respStatusBadge.textContent = `${data.status} ${data.statusText}`;
+      respStatusBadge.className = 'status-badge ' + statusClass(data.status);
+
+      // Meta
+      respTime.textContent = data.elapsed + ' ms';
+      respSize.textContent = formatBytes(data.size || (data.body ? new Blob([data.body]).size : 0));
+
+      // Body
+      let displayBody = data.body;
+      const ct = (data.headers['content-type'] || '').toLowerCase();
+      if (ct.includes('json')) {
+        try {
+          const parsed = JSON.parse(data.body);
+          displayBody = JSON.stringify(parsed, null, 2);
+          respBodyPre.innerHTML = syntaxHighlightJson(displayBody);
+        } catch {
+          respBodyPre.textContent = displayBody;
+        }
+      } else {
+        respBodyPre.textContent = displayBody;
+      }
+
+      // Raw
+      respRawPre.textContent = data.body;
+
+      // Response headers
+      respHeadersBody.innerHTML = '';
+      Object.entries(data.headers || {}).forEach(([k, v]) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${escapeHtml(k)}</td><td>${escapeHtml(Array.isArray(v) ? v.join(', ') : String(v))}</td>`;
+        respHeadersBody.appendChild(tr);
+      });
+
+      // Reset to body tab
+      document.querySelectorAll('.resp-tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelector('[data-resp-tab="body"]').classList.add('active');
+      document.getElementById('resp-body-panel').style.display = '';
+      document.getElementById('resp-headers-panel').style.display = 'none';
+      document.getElementById('resp-raw-panel').style.display = 'none';
+    }
+
+    function showErrorResponse(error, details) {
+      currentResponse = { error, details };
+      loadingIndicator.style.display = 'none';
+      respContent.style.display = 'flex';
+      respStatusBadge.textContent = 'Error';
+      respStatusBadge.className = 'status-badge status-5xx';
+      respTime.textContent = '-';
+      respSize.textContent = '-';
+      respBodyPre.innerHTML = `<span style="color:var(--red);font-weight:700;">${escapeHtml(error)}</span>\n<span style="color:var(--text2);">${escapeHtml(details || '')}</span>`;
+      respHeadersBody.innerHTML = '';
+      respRawPre.textContent = details || '';
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // ===== COPY RESPONSE =====
+    document.getElementById('btn-copy-resp').addEventListener('click', () => {
+      if (!currentResponse) return;
+      const txt = currentResponse.body || currentResponse.details || '';
+      navigator.clipboard.writeText(txt).then(() => showToast('Copied to clipboard'));
+    });
+
+    // ===== HISTORY =====
+    function saveHistory(reqData, respData) {
+      const entry = {
+        id: Date.now(),
+        method: reqData.method,
+        url: reqData.targetUrl,
+        status: respData.status,
+        elapsed: respData.elapsed,
+        timestamp: new Date().toISOString(),
+        reqData,
+        respData,
+      };
+      history.unshift(entry);
+      if (history.length > 100) history = history.slice(0, 100);
+      localStorage.setItem('resmod_history', JSON.stringify(history));
+      renderHistory();
+    }
+
+    function renderHistory() {
+      historyList.innerHTML = '';
+      historyCount.textContent = history.length + ' request' + (history.length !== 1 ? 's' : '');
+      if (history.length === 0) {
+        historyList.appendChild(emptyHistory);
+        emptyHistory.style.display = '';
+        return;
+      }
+      emptyHistory.style.display = 'none';
+      history.forEach((entry, idx) => {
+        const item = document.createElement('div');
+        item.className = 'history-item' + (idx === activeHistoryIndex ? ' active' : '');
+        const sc = entry.status ? statusColor(entry.status) : 'var(--text2)';
+        item.innerHTML = `
+          <span class="h-method ${getMethodClass(entry.method)}">${entry.method}</span>
+          <span class="h-url" title="${escapeAttr(entry.url)}">${escapeHtml(entry.url)}</span>
+          <span class="h-status" style="color:${sc}">${entry.status || '?'}</span>
+        `;
+        item.addEventListener('click', () => loadHistoryEntry(idx));
+        historyList.appendChild(item);
+      });
+    }
+
+    function loadHistoryEntry(idx) {
+      activeHistoryIndex = idx;
+      const entry = history[idx];
+      if (!entry) return;
+
+      // Restore request
+      methodSelect.value = entry.reqData.method;
+      urlInput.value = entry.reqData.url || entry.url;
+      timeoutInput.value = entry.reqData.timeout || 30000;
+
+      // Headers
+      clearKvEditor(headersEditor);
+      Object.entries(entry.reqData.headers || {}).forEach(([k, v]) => {
+        createKvRow(headersEditor, 'Header Name', 'Header Value', k, v);
+      });
+
+      // Body
+      if (entry.reqData.body) {
+        bodyTextarea.value = entry.reqData.body;
+        const ct = entry.reqData.headers['Content-Type'] || '';
+        let bt = 'text';
+        if (ct.includes('json')) bt = 'json';
+        else if (ct.includes('xml')) bt = 'xml';
+        else if (ct.includes('form')) bt = 'form';
+        document.querySelector(`[data-type="${bt}"]`).click();
+      }
+
+      // Response
+      if (entry.respData) showResponse(entry.respData, entry.reqData);
+
+      updateBadges();
+      renderHistory();
+    }
+
+    document.getElementById('btn-clear-history').addEventListener('click', () => {
+      if (history.length === 0) return;
+      history = [];
+      activeHistoryIndex = -1;
+      localStorage.setItem('resmod_history', JSON.stringify(history));
+      renderHistory();
+      showToast('History cleared');
+    });
+
+    function setDefaultHeaders() {
+      clearKvEditor(headersEditor);
+      createKvRow(headersEditor, 'Header Name', 'Header Value', 'Accept', '*/*');
+      createKvRow(headersEditor, 'Header Name', 'Header Value', 'Accept-Encoding', 'gzip, deflate, br');
+      createKvRow(headersEditor, 'Header Name', 'Header Value', 'Connection', 'keep-alive');
+    }
+
+    document.getElementById('btn-new-request').addEventListener('click', () => {
+      activeHistoryIndex = -1;
+      methodSelect.value = 'GET';
+      urlInput.value = '';
+      timeoutInput.value = '30000';
+      setDefaultHeaders();
+      clearKvEditor(paramsEditor);
+      clearKvEditor(formDataEditor);
+      bodyTextarea.value = '';
+      document.querySelector('[data-type="none"]').click();
+      document.getElementById('auth-type').value = 'none';
+      document.getElementById('auth-type').dispatchEvent(new Event('change'));
+      currentResponse = null;
+      respContent.style.display = 'none';
+      respPlaceholder.style.display = 'flex';
+      updateBadges();
+      renderHistory();
+      urlInput.focus();
+    });
+
+    // ===== SEND ON ENTER =====
+    urlInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendRequest();
+    });
+
+    btnSend.addEventListener('click', sendRequest);
+
+    // ===== SPLITTER DRAG =====
+    const splitter = document.getElementById('splitter');
+    const reqSection = document.getElementById('req-section');
+    const mainLayout = document.querySelector('.req-resp-split');
+
+    let dragging = false;
+    let startY = 0;
+    let startH = 0;
+
+    splitter.addEventListener('mousedown', (e) => {
+      dragging = true;
+      startY = e.clientY;
+      startH = reqSection.getBoundingClientRect().height;
+      document.body.classList.add('no-select');
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!dragging) return;
+      const delta = e.clientY - startY;
+      const newH = Math.max(100, Math.min(startH + delta, mainLayout.getBoundingClientRect().height - 120));
+      reqSection.style.height = newH + 'px';
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (dragging) { dragging = false; document.body.classList.remove('no-select'); }
+    });
+
+    // ===== METHOD COLOR =====
+    methodSelect.addEventListener('change', updateMethodColor);
+    function updateMethodColor() {
+      const colors = {
+        GET: '#61affe', POST: '#49cc90', PUT: '#fca130', PATCH: '#50e3c2',
+        DELETE: '#f93e3e', HEAD: '#9012fe', OPTIONS: '#0d5aa7'
+      };
+      methodSelect.style.color = colors[methodSelect.value] || 'var(--text)';
+    }
+    updateMethodColor();
+
+    // ===== INIT =====
+    renderHistory();
+    setDefaultHeaders();
+    updateBadges();
+
+    // Keyboard shortcut
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); sendRequest(); }
+    });
+
+  })();
+  </script>
+</body>
+</html>
