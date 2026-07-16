@@ -13,9 +13,12 @@ Repository: https://github.com/Amadoflimd/ResMod.git
 3. [Installation](#installation)
 4. [Usage](#usage)
 5. [Server endpoints](#server-endpoints)
-6. [UI functionality](#ui-functionality)
-7. [Project structure](#project-structure)
-8. [License](#license)
+6. [Authentication](#authentication)
+7. [Collections](#collections)
+8. [Cloud sync](#cloud-sync)
+9. [UI functionality](#ui-functionality)
+10. [Project structure](#project-structure)
+11. [License](#license)
 
 ---
 
@@ -26,8 +29,9 @@ ResMod combines a small HTTP/HTTPS server written in Node.js with a web interfac
 - Serves the static interface.
 - Exposes a proxy at `/api/proxy` that forwards requests to the chosen destination.
 - Exposes a health endpoint at `/api/health`.
+- Optionally supports Google Sign-In and cloud sync (Supabase, Neon, Aiven Postgres).
 
-The interface lets you configure HTTP methods, URL, headers, query parameters, body, and authentication, and keeps a local history of up to 100 requests.
+The interface lets you configure HTTP methods, URL, headers, query parameters, body, and authentication, keeps a local history of up to 100 requests, and lets you organize requests into collections.
 
 ---
 
@@ -36,7 +40,13 @@ The interface lets you configure HTTP methods, URL, headers, query parameters, b
 - [Node.js](https://nodejs.org/) `>= 18.0.0`.
 - A modern web browser.
 
-No external npm dependencies are required; it only uses Node.js built-in modules (`http`, `https`, `fs`, `path`, `url`).
+No external npm dependencies are required for the core server; it only uses Node.js built-in modules (`http`, `https`, `fs`, `path`, `url`, `crypto`, `zlib`).
+
+If you enable **Postgres cloud sync** (Neon, Aiven Postgres), you need to install the `pg` driver:
+
+```bash
+npm install pg
+```
 
 ---
 
@@ -49,7 +59,13 @@ git clone https://github.com/Amadoflimd/ResMod.git
 cd ResMod
 ```
 
-> You don't need to run `npm install` because the project has no third-party dependencies.
+> You don't need to run `npm install` unless you plan to use Postgres cloud sync.
+
+Copy `.env.example` to `.env` and fill in the values you need:
+
+```bash
+cp .env.example .env
+```
 
 ---
 
@@ -88,16 +104,22 @@ ResMod running at http://localhost:3000
 | GET     | `/`            | Serves the web interface (`public/index.html`).                      |
 | GET     | `/*`           | Serves static files from the `public/` folder.                       |
 | POST    | `/api/proxy`   | Receives a JSON payload with the request data and forwards it.       |
-| GET     | `/api/health`  | Returns `{ "status": "ok", "version": "1.0.0" }`.                    |
-| OPTIONS | `*`            | Responds to CORS preflight requests.                                   |
+| GET     | `/api/health`        | Returns `{ "status": "ok", "version": "1.0.0" }`.                |
+| GET     | `/api/auth/config`   | Returns `{ "enabled": true/false, "clientId": "..." }`.            |
+| GET     | `/api/auth/me`     | Returns the current signed-in user or `{ "user": null }`.          |
+| POST    | `/api/auth/google` | Verifies a Google ID token and creates a session cookie.            |
+| POST    | `/api/auth/signout`| Clears the session cookie.                                          |
+| POST    | `/api/sync`        | Loads or saves user data (history + collections) on Postgres.       |
+| OPTIONS | `*`                | Responds to CORS preflight requests.                                   |
 
 ### CORS
 
 The server adds the following CORS headers to every response:
 
-- `Access-Control-Allow-Origin: *`
+- `Access-Control-Allow-Origin: <request origin or *>`
 - `Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS`
 - `Access-Control-Allow-Headers: Content-Type`
+- `Access-Control-Allow-Credentials: true`
 
 ### Proxy `/api/proxy`
 
@@ -126,6 +148,76 @@ Proxy response (JSON):
   "size": 124
 }
 ```
+
+---
+
+## Authentication
+
+Google Sign-In is **optional** and controlled by the `.env` variable `ENABLE_GOOGLE_SIGNIN`.
+
+### Setup
+
+1. Create OAuth 2.0 credentials in the [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
+2. Add `http://localhost:3000` (or your domain) to **Authorized JavaScript origins**.
+3. Set the values in `.env`:
+
+```dotenv
+ENABLE_GOOGLE_SIGNIN=true
+GOOGLE_CLIENT_ID=your_client_id_here
+GOOGLE_CLIENT_SECRET=your_client_secret_here
+SESSION_SECRET=a_random_long_string
+```
+
+4. Restart the server.
+
+### Behavior
+
+- When disabled, the top bar shows **Local Guest** and everything is stored in the browser.
+- When enabled, a **Sign in with Google** button appears in the top bar. The sign-in flow opens in a popup and does **not** redirect the main page.
+- After signing in, the user's name and avatar are shown, and a **Cloud** button lets you configure cloud storage.
+- Signing out returns to **Local Guest** mode and switches back to browser storage.
+
+---
+
+## Collections
+
+The sidebar has a **Collections** tab next to **History**. Collections are stored as a tree of folders and saved requests.
+
+### Actions
+
+- **+F**: create a new folder.
+- **+R**: add the current request to the selected folder.
+- **+ Save to Collection** (top bar): save the current request under the selected folder or the root.
+- **Ren**: rename a folder or request.
+- **Del**: delete a folder or request (folders delete all children).
+- **Exp**: export all collections as JSON to the clipboard.
+- **Imp**: import a JSON collection under the selected folder or the root.
+
+### Storage
+
+- Not signed in or no cloud config: collections are stored in the browser's **IndexedDB**.
+- Signed in with cloud configured: collections are synced to the selected cloud provider.
+
+---
+
+## Cloud sync
+
+When signed in, you can choose where to sync history and collections:
+
+- **Supabase (REST API)**: provide the Supabase URL, anon key, and table name. The app uses PostgREST directly from the browser.
+- **Neon** / **Aiven Postgres**: provide the Postgres connection string and table name. The app sends the data to the local server endpoint `/api/sync`, which writes to the database using the `pg` driver.
+
+### Required table schema (Postgres)
+
+```sql
+CREATE TABLE IF NOT EXISTS resmod_data (
+  user_id TEXT PRIMARY KEY,
+  payload JSONB NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+For Supabase, create the same table through the Supabase dashboard and enable Row Level Security as needed.
 
 ---
 
@@ -189,15 +281,28 @@ The `Content-Type` is added automatically if it has not been set manually.
   - **Raw**: unprocessed body.
 - **Copy**: copies the response body (or error message) to the clipboard.
 
-### History sidebar
+### Sidebar tabs
 
-- Stores up to 100 requests in the browser's `localStorage` under the key `resmod_history`.
+- **History**: up to 100 recent requests.
+- **Collections**: tree of folders and saved requests.
+
+### History
+
+- Stores up to 100 requests in the browser's `localStorage` (or in the cloud when signed in).
 - Each entry shows the method, URL, and status code.
 - Clicking an entry restores the full request and its response.
 - The **Clear History** button removes all stored history.
 
+### Collections
+
+- Organize requests into folders.
+- Save the current request to a folder.
+- Export/import the full collection tree as JSON.
+
 ### Other UX details
 
+- **Default headers** added to every new request: `Accept: */*`, `Accept-Encoding: gzip, deflate, br`, and `Connection: keep-alive`.
+- The proxy server automatically **decodes gzip, deflate, and brotli** responses.
 - **Dark theme** with a modern color palette.
 - **Draggable splitter** between the request and response panels to adjust heights.
 - **Toasts** to notify actions such as copying to clipboard or clearing history.
@@ -211,9 +316,10 @@ The `Content-Type` is added automatically if it has not been set manually.
 ResMod/
 ├── public/
 │   └── index.html          # Complete web interface (HTML + CSS + JS)
-├── server.js               # Node.js server and proxy
+├── server.js               # Node.js server, proxy, auth, and cloud sync
 ├── package.json            # Project configuration and scripts
 ├── README.md               # This file
+├── .env.example            # Environment variables template
 ├── .gitignore              # Ignores unnecessary files
 └── base64_encoder.py       # Utility to encode credentials in Base64
 ```

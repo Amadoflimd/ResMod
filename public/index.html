@@ -630,11 +630,104 @@
 
     .no-select { user-select: none; }
 
+    /* ===== AUTH / PROFILE ===== */
+    .topbar-profile {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--text2);
+    }
+    .topbar-profile img {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid var(--border);
+    }
+    #g_id_signin { line-height: 0; }
+
+    /* ===== SIDEBAR TABS ===== */
+    .sidebar-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-tab {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text2);
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 10px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+    }
+    .sidebar-tab.active {
+      color: var(--text);
+      border-bottom-color: var(--accent2);
+    }
+    .sidebar-panels { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+    .sidebar-panel { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+    .sidebar-panel.active { display: flex; }
+
+    /* ===== COLLECTIONS TREE ===== */
+    .tree-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 12px;
+      color: var(--text);
+      border-radius: var(--radius-sm);
+      margin: 0 6px;
+    }
+    .tree-item:hover { background: var(--surface2); }
+    .tree-item.selected { background: var(--surface2); border-left: 2px solid var(--accent2); }
+    .tree-item .tree-caret {
+      width: 14px; text-align: center; color: var(--text2); font-size: 10px;
+    }
+    .tree-item .tree-icon { color: var(--text2); }
+    .tree-item .tree-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tree-item .tree-actions { display: none; gap: 4px; }
+    .tree-item:hover .tree-actions { display: flex; }
+    .tree-children { padding-left: 14px; }
+    .btn-icon {
+      background: transparent; border: none; color: var(--text2); cursor: pointer;
+      font-size: 14px; padding: 2px 4px; border-radius: 3px;
+    }
+    .btn-icon:hover { color: var(--text); background: var(--surface); }
+
+    /* ===== MODALS ===== */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+      display: flex; align-items: center; justify-content: center; z-index: 100;
+    }
+    .modal {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+      width: 420px; max-width: 90vw; padding: 20px;
+    }
+    .modal h3 { margin-bottom: 12px; font-size: 16px; }
+    .modal p { font-size: 12px; color: var(--text2); margin-bottom: 14px; }
+    .modal label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 6px; margin-top: 12px; }
+    .modal input, .modal select, .modal textarea {
+      width: 100%; background: var(--surface); border: 1px solid var(--border); color: var(--text);
+      padding: 8px 10px; border-radius: var(--radius-sm); font-size: 13px; outline: none;
+    }
+    .modal textarea { min-height: 80px; font-family: var(--font-mono); resize: vertical; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+    .hidden { display: none !important; }
+
     @media (max-width: 700px) {
       .sidebar { display: none; }
       .meta-row { flex-wrap: wrap; }
     }
   </style>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
@@ -643,21 +736,47 @@
     <div class="topbar-logo">ResMod</div>
     <div class="topbar-actions">
       <button class="btn-ghost" id="btn-new-request">+ New Request</button>
+      <button class="btn-ghost hidden" id="btn-save-to-collection" title="Save current request to the selected collection">+ Save to Collection</button>
+      <button class="btn-ghost hidden" id="btn-cloud-config" title="Configure cloud storage">Cloud</button>
       <button class="btn-ghost" id="btn-clear-history">Clear History</button>
+    </div>
+    <div class="topbar-profile" id="auth-container">
+      <span id="user-name">Local Guest</span>
     </div>
   </div>
 
   <!-- MAIN LAYOUT -->
   <div class="main-layout">
 
-    <!-- SIDEBAR (History) -->
+    <!-- SIDEBAR -->
     <div class="sidebar" id="sidebar">
-      <div class="sidebar-header">
-        History
-        <span id="history-count" style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0;">0 requests</span>
+      <div class="sidebar-tabs">
+        <button class="sidebar-tab active" data-sidebar-tab="history">History</button>
+        <button class="sidebar-tab" data-sidebar-tab="collections">Collections</button>
       </div>
-      <div class="sidebar-list" id="history-list">
-        <div class="empty-history" id="empty-history">No requests yet.<br>Send your first one!</div>
+      <div class="sidebar-panels">
+        <div class="sidebar-panel active" id="panel-history">
+          <div class="sidebar-header">
+            <span>History</span>
+            <span id="history-count" style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0;">0 requests</span>
+          </div>
+          <div class="sidebar-list" id="history-list">
+            <div class="empty-history" id="empty-history">No requests yet.<br>Send your first one!</div>
+          </div>
+        </div>
+        <div class="sidebar-panel" id="panel-collections">
+          <div class="sidebar-header">
+            <span>Collections</span>
+            <span style="display:flex;gap:4px;">
+              <button class="btn-icon" id="btn-new-folder" title="New folder">+F</button>
+              <button class="btn-icon" id="btn-import-collection" title="Import">Imp</button>
+              <button class="btn-icon" id="btn-export-collection" title="Export all">Exp</button>
+            </span>
+          </div>
+          <div class="sidebar-list" id="collections-tree">
+            <div class="empty-history" id="empty-collections">No collections yet.<br>Create a folder or save a request.</div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -843,6 +962,51 @@
   <!-- TOAST -->
   <div class="toast" id="toast"></div>
 
+  <!-- CLOUD STORAGE MODAL -->
+  <div class="modal-overlay hidden" id="cloud-modal">
+    <div class="modal">
+      <h3>Cloud Storage</h3>
+      <p>Choose where your collections and history are stored when signed in. Local Guest mode always uses the browser.</p>
+      <label>Provider</label>
+      <select id="cloud-provider">
+        <option value="supabase">Supabase (REST API)</option>
+        <option value="neon">Neon (Postgres via server)</option>
+        <option value="aiven">Aiven Postgres (via server)</option>
+      </select>
+      <div id="cloud-field-supabase">
+        <label>Supabase URL</label>
+        <input type="text" id="cloud-supabase-url" placeholder="https://<project>.supabase.co" />
+        <label>Supabase Anon Key</label>
+        <input type="text" id="cloud-supabase-key" placeholder="your-anon-key" />
+        <label>Table name</label>
+        <input type="text" id="cloud-supabase-table" value="resmod_data" />
+      </div>
+      <div id="cloud-field-postgres" class="hidden">
+        <label>Connection string</label>
+        <input type="text" id="cloud-postgres-connection" placeholder="postgresql://user:pass@host/db" />
+        <label>Table name</label>
+        <input type="text" id="cloud-postgres-table" value="resmod_data" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="btn-cloud-cancel">Cancel</button>
+        <button class="btn-send" id="btn-cloud-save">Save & Test</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- IMPORT COLLECTION MODAL -->
+  <div class="modal-overlay hidden" id="import-modal">
+    <div class="modal">
+      <h3>Import Collection</h3>
+      <p>Paste a shared collection JSON. It will be added under the currently selected folder, or to the root if none is selected.</p>
+      <textarea id="import-json" placeholder="[{ name: 'Folder', type: 'folder', children: [...] }]"></textarea>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="btn-import-cancel">Cancel</button>
+        <button class="btn-send" id="btn-import-confirm">Import</button>
+      </div>
+    </div>
+  </div>
+
   <script>
   (() => {
     // ===== STATE =====
@@ -851,6 +1015,14 @@
     let currentResponse = null;
     let bodyType = 'none';
     let abortTimer = null;
+
+    let currentUser = null;
+    let authConfig = { enabled: false, clientId: '' };
+    let cloudConfig = JSON.parse(localStorage.getItem('resmod_cloud_config') || 'null');
+    let collections = [];
+    let selectedCollectionId = null;
+    let expandedCollectionIds = new Set();
+    let pendingCollectionSave = null;
 
     // ===== DOM REFS =====
     const methodSelect = document.getElementById('method-select');
@@ -874,6 +1046,23 @@
     const respRawPre = document.getElementById('resp-raw-pre');
     const respHeadersBody = document.getElementById('resp-headers-body');
     const toast = document.getElementById('toast');
+
+    const authContainer = document.getElementById('auth-container');
+    const btnSaveToCollection = document.getElementById('btn-save-to-collection');
+    const btnCloudConfig = document.getElementById('btn-cloud-config');
+    const collectionsTree = document.getElementById('collections-tree');
+    const emptyCollections = document.getElementById('empty-collections');
+    const cloudModal = document.getElementById('cloud-modal');
+    const cloudProvider = document.getElementById('cloud-provider');
+    const cloudFieldSupabase = document.getElementById('cloud-field-supabase');
+    const cloudFieldPostgres = document.getElementById('cloud-field-postgres');
+    const cloudSupabaseUrl = document.getElementById('cloud-supabase-url');
+    const cloudSupabaseKey = document.getElementById('cloud-supabase-key');
+    const cloudSupabaseTable = document.getElementById('cloud-supabase-table');
+    const cloudPostgresConnection = document.getElementById('cloud-postgres-connection');
+    const cloudPostgresTable = document.getElementById('cloud-postgres-table');
+    const importModal = document.getElementById('import-modal');
+    const importJson = document.getElementById('import-json');
 
     // ===== HELPERS =====
     function showToast(msg, duration = 2200) {
@@ -1157,7 +1346,7 @@
           showErrorResponse(data.error, data.details);
         } else {
           showResponse(data, reqData);
-          saveHistory(reqData, data);
+          await saveHistory(reqData, data);
         }
       } catch (err) {
         showErrorResponse('Network Error', err.message);
@@ -1244,7 +1433,7 @@
     });
 
     // ===== HISTORY =====
-    function saveHistory(reqData, respData) {
+    async function saveHistory(reqData, respData) {
       const entry = {
         id: Date.now(),
         method: reqData.method,
@@ -1257,7 +1446,7 @@
       };
       history.unshift(entry);
       if (history.length > 100) history = history.slice(0, 100);
-      localStorage.setItem('resmod_history', JSON.stringify(history));
+      await saveUserData({ history, collections });
       renderHistory();
     }
 
@@ -1288,41 +1477,15 @@
       activeHistoryIndex = idx;
       const entry = history[idx];
       if (!entry) return;
-
-      // Restore request
-      methodSelect.value = entry.reqData.method;
-      urlInput.value = entry.reqData.url || entry.url;
-      timeoutInput.value = entry.reqData.timeout || 30000;
-
-      // Headers
-      clearKvEditor(headersEditor);
-      Object.entries(entry.reqData.headers || {}).forEach(([k, v]) => {
-        createKvRow(headersEditor, 'Header Name', 'Header Value', k, v);
-      });
-
-      // Body
-      if (entry.reqData.body) {
-        bodyTextarea.value = entry.reqData.body;
-        const ct = entry.reqData.headers['Content-Type'] || '';
-        let bt = 'text';
-        if (ct.includes('json')) bt = 'json';
-        else if (ct.includes('xml')) bt = 'xml';
-        else if (ct.includes('form')) bt = 'form';
-        document.querySelector(`[data-type="${bt}"]`).click();
-      }
-
-      // Response
-      if (entry.respData) showResponse(entry.respData, entry.reqData);
-
-      updateBadges();
+      loadRequestData(entry.reqData, entry.respData);
       renderHistory();
     }
 
-    document.getElementById('btn-clear-history').addEventListener('click', () => {
+    document.getElementById('btn-clear-history').addEventListener('click', async () => {
       if (history.length === 0) return;
       history = [];
       activeHistoryIndex = -1;
-      localStorage.setItem('resmod_history', JSON.stringify(history));
+      await saveUserData({ history, collections });
       renderHistory();
       showToast('History cleared');
     });
@@ -1400,10 +1563,613 @@
     }
     updateMethodColor();
 
+    // ===== LOAD REQUEST =====
+    function loadRequestData(reqData, respData) {
+      methodSelect.value = reqData.method;
+      urlInput.value = reqData.url || reqData.targetUrl || '';
+      timeoutInput.value = reqData.timeout || 30000;
+
+      clearKvEditor(headersEditor);
+      Object.entries(reqData.headers || {}).forEach(([k, v]) => {
+        createKvRow(headersEditor, 'Header Name', 'Header Value', k, v);
+      });
+
+      clearKvEditor(paramsEditor);
+      clearKvEditor(formDataEditor);
+      bodyTextarea.value = reqData.body || '';
+
+      if (reqData.body) {
+        const ct = reqData.headers['Content-Type'] || '';
+        let bt = 'text';
+        if (ct.includes('json')) bt = 'json';
+        else if (ct.includes('xml')) bt = 'xml';
+        else if (ct.includes('form')) bt = 'form';
+        document.querySelector(`[data-type="${bt}"]`).click();
+      } else {
+        document.querySelector('[data-type="none"]').click();
+      }
+
+      document.getElementById('auth-type').value = 'none';
+      document.getElementById('auth-type').dispatchEvent(new Event('change'));
+
+      currentResponse = respData || null;
+      if (respData) showResponse(respData, reqData);
+      else { respContent.style.display = 'none'; respPlaceholder.style.display = 'flex'; }
+
+      activeHistoryIndex = -1;
+      selectedCollectionId = null;
+      updateBadges();
+      updateMethodColor();
+      renderHistory();
+      renderCollections();
+    }
+
+    // ===== STORAGE =====
+    function isCloud() {
+      return !!currentUser && !!cloudConfig;
+    }
+
+    function makeId() {
+      return Date.now().toString(36) + Math.random().toString(36).slice(2);
+    }
+
+    function flatten(nodes, parentId, out) {
+      out = out || [];
+      for (const n of nodes || []) {
+        const { children, ...rest } = n;
+        const item = { ...rest, parentId };
+        out.push(item);
+        if (children && children.length) flatten(children, n.id, out);
+      }
+      return out;
+    }
+
+    function buildTree(flat, parentId) {
+      return (flat || [])
+        .filter(i => (i.parentId || null) === (parentId || null))
+        .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+        .map(i => ({ ...i, children: buildTree(flat, i.id) }));
+    }
+
+    function openDb() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open('ResModDB', 1);
+        req.onerror = () => reject(req.error);
+        req.onsuccess = () => resolve(req.result);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains('collections')) {
+            db.createObjectStore('collections', { keyPath: 'id' });
+          }
+        };
+      });
+    }
+
+    async function loadLocalCollections() {
+      const db = await openDb();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('collections', 'readonly');
+        const store = tx.objectStore('collections');
+        const req = store.getAll();
+        req.onsuccess = () => resolve(buildTree(req.result || []));
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function saveLocalCollections(nodes) {
+      const flat = flatten(nodes || []);
+      const db = await openDb();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('collections', 'readwrite');
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+        const store = tx.objectStore('collections');
+        const clearReq = store.clear();
+        clearReq.onsuccess = () => {
+          for (const item of flat) {
+            const copy = { ...item };
+            delete copy.children;
+            store.put(copy);
+          }
+        };
+        clearReq.onerror = () => reject(clearReq.error);
+      });
+    }
+
+    async function loadSupabaseData() {
+      const { url, key, table } = cloudConfig;
+      const userId = encodeURIComponent(currentUser.sub);
+      const resp = await fetch(`${url}/rest/v1/${table}?user_id=eq.${userId}&select=payload`, {
+        headers: { apikey: key, Authorization: `Bearer ${key}` }
+      });
+      if (!resp.ok) throw new Error(`Supabase error: ${resp.status} ${resp.statusText}`);
+      const rows = await resp.json();
+      if (!rows || rows.length === 0) return { history: [], collections: [] };
+      const data = rows[0].payload || {};
+      return { history: data.history || [], collections: data.collections || [] };
+    }
+
+    async function saveSupabaseData(data) {
+      const { url, key, table } = cloudConfig;
+      const row = { user_id: currentUser.sub, payload: data };
+      const resp = await fetch(`${url}/rest/v1/${table}`, {
+        method: 'POST',
+        headers: {
+          apikey: key,
+          Authorization: `Bearer ${key}`,
+          'Content-Type': 'application/json',
+          Prefer: 'resolution=merge-duplicates, return=minimal'
+        },
+        body: JSON.stringify(row)
+      });
+      if (!resp.ok) throw new Error(`Supabase error: ${resp.status} ${resp.statusText}`);
+    }
+
+    async function loadPostgresData() {
+      const resp = await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider: cloudConfig.provider,
+          connectionString: cloudConfig.connectionString,
+          table: cloudConfig.table,
+          action: 'load'
+        })
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error || data.details || `Sync failed: ${resp.status}`);
+      return data.data || { history: [], collections: [] };
+    }
+
+    async function savePostgresData(payload) {
+      const resp = await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider: cloudConfig.provider,
+          connectionString: cloudConfig.connectionString,
+          table: cloudConfig.table,
+          action: 'save',
+          payload
+        })
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error || data.details || `Sync failed: ${resp.status}`);
+    }
+
+    async function loadUserData() {
+      if (isCloud()) {
+        if (cloudConfig.provider === 'supabase') return await loadSupabaseData();
+        return await loadPostgresData();
+      }
+      const h = JSON.parse(localStorage.getItem('resmod_history') || '[]');
+      const c = await loadLocalCollections();
+      return { history: h, collections: c };
+    }
+
+    async function saveUserData(data) {
+      if (isCloud()) {
+        if (cloudConfig.provider === 'supabase') return await saveSupabaseData(data);
+        return await savePostgresData(data);
+      }
+      localStorage.setItem('resmod_history', JSON.stringify(data.history || []));
+      await saveLocalCollections(data.collections || []);
+    }
+
+    // ===== COLLECTIONS =====
+    function findNode(nodes, id, parent) {
+      for (const n of nodes || []) {
+        if (n.id === id) return { node: n, parent: parent || null };
+        if (n.children && n.children.length) {
+          const found = findNode(n.children, id, n);
+          if (found) return found;
+        }
+      }
+      return null;
+    }
+
+    function removeNode(nodes, id) {
+      for (let i = 0; i < nodes.length; i++) {
+        if (nodes[i].id === id) { nodes.splice(i, 1); return true; }
+        if (nodes[i].children && removeNode(nodes[i].children, id)) return true;
+      }
+      return false;
+    }
+
+    function getSelectedParentId() {
+      if (!selectedCollectionId) return null;
+      const found = findNode(collections, selectedCollectionId);
+      if (!found) return null;
+      if (found.node.type === 'folder') return found.node.id;
+      // If a request is selected, add under its parent
+      const flat = flatten(collections);
+      const item = flat.find(i => i.id === selectedCollectionId);
+      return item ? item.parentId : null;
+    }
+
+    async function persistCollections() {
+      await saveUserData({ history, collections });
+    }
+
+    function renderCollections() {
+      collectionsTree.innerHTML = '';
+      if (collections.length === 0) {
+        collectionsTree.appendChild(emptyCollections);
+        emptyCollections.style.display = '';
+        return;
+      }
+      emptyCollections.style.display = 'none';
+      renderTree(collectionsTree, collections, 0);
+    }
+
+    function renderTree(container, nodes, level) {
+      for (const node of nodes) {
+        const isFolder = node.type === 'folder';
+        const isExpanded = expandedCollectionIds.has(node.id);
+        const isSelected = node.id === selectedCollectionId;
+
+        const row = document.createElement('div');
+        row.className = 'tree-item' + (isSelected ? ' selected' : '');
+        row.style.paddingLeft = (10 + level * 12) + 'px';
+        row.innerHTML = `
+          <span class="tree-caret">${isFolder ? (isExpanded ? '▼' : '▶') : ''}</span>
+          <span class="tree-icon">${isFolder ? '📁' : '➡️'}</span>
+          <span class="tree-name">${escapeHtml(node.name)}</span>
+          <span class="tree-actions">
+            ${isFolder ? '<button class="btn-icon" data-action="add-request" title="Add request">+R</button><button class="btn-icon" data-action="add-folder" title="Add folder">+F</button>' : ''}
+            <button class="btn-icon" data-action="rename" title="Rename">Ren</button>
+            <button class="btn-icon" data-action="delete" title="Delete">Del</button>
+          </span>
+        `;
+
+        row.addEventListener('click', (e) => {
+          if (e.target.closest('.tree-actions') || e.target.closest('.tree-caret')) return;
+          if (isFolder) {
+            toggleExpand(node.id);
+          } else {
+            selectedCollectionId = node.id;
+            loadCollectionRequest(node);
+            renderCollections();
+          }
+        });
+
+        const caret = row.querySelector('.tree-caret');
+        if (caret) caret.addEventListener('click', (e) => { e.stopPropagation(); toggleExpand(node.id); });
+
+        row.querySelector('[data-action="add-request"]')?.addEventListener('click', (e) => { e.stopPropagation(); promptAddRequest(node.id); });
+        row.querySelector('[data-action="add-folder"]')?.addEventListener('click', (e) => { e.stopPropagation(); promptAddFolder(node.id); });
+        row.querySelector('[data-action="rename"]')?.addEventListener('click', (e) => { e.stopPropagation(); promptRename(node.id); });
+        row.querySelector('[data-action="delete"]')?.addEventListener('click', (e) => { e.stopPropagation(); promptDelete(node.id); });
+
+        container.appendChild(row);
+
+        if (isFolder && isExpanded && node.children) {
+          const childrenContainer = document.createElement('div');
+          childrenContainer.className = 'tree-children';
+          renderTree(childrenContainer, node.children, level + 1);
+          container.appendChild(childrenContainer);
+        }
+      }
+    }
+
+    function toggleExpand(id) {
+      if (expandedCollectionIds.has(id)) expandedCollectionIds.delete(id);
+      else expandedCollectionIds.add(id);
+      renderCollections();
+    }
+
+    async function promptAddFolder(parentId) {
+      const name = prompt('Folder name:', 'New Folder');
+      if (!name || !name.trim()) return;
+      await addCollectionNode(parentId, 'folder', name.trim());
+      if (parentId) expandedCollectionIds.add(parentId);
+      renderCollections();
+    }
+
+    async function promptAddRequest(parentId) {
+      const req = buildRequest();
+      if (!req) { showToast('Please enter a URL first'); return; }
+      const defaultName = req.method + ' ' + (req.url || req.targetUrl).slice(0, 40);
+      const name = prompt('Request name:', defaultName);
+      if (!name || !name.trim()) return;
+      await addCollectionNode(parentId, 'request', name.trim(), req);
+      if (parentId) expandedCollectionIds.add(parentId);
+      renderCollections();
+    }
+
+    async function addCollectionNode(parentId, type, name, payload) {
+      const node = { id: makeId(), name, type, payload, children: [], sortOrder: Date.now() };
+      if (!parentId) {
+        collections.push(node);
+      } else {
+        const found = findNode(collections, parentId);
+        if (found && found.node.type === 'folder') {
+          found.node.children = found.node.children || [];
+          found.node.children.push(node);
+        } else {
+          collections.push(node);
+        }
+      }
+      await persistCollections();
+    }
+
+    async function promptRename(id) {
+      const found = findNode(collections, id);
+      if (!found) return;
+      const name = prompt('New name:', found.node.name);
+      if (!name || !name.trim()) return;
+      found.node.name = name.trim();
+      await persistCollections();
+      renderCollections();
+    }
+
+    async function promptDelete(id) {
+      const found = findNode(collections, id);
+      if (!found) return;
+      if (!confirm(`Delete "${found.node.name}" and all its children?`)) return;
+      removeNode(collections, id);
+      if (selectedCollectionId === id) selectedCollectionId = null;
+      await persistCollections();
+      renderCollections();
+    }
+
+    function loadCollectionRequest(node) {
+      if (!node.payload) return;
+      loadRequestData(node.payload, null);
+      showToast('Loaded request from collection');
+    }
+
+    async function saveCurrentToCollection() {
+      const req = buildRequest();
+      if (!req) { showToast('Please enter a URL first'); return; }
+      const defaultName = req.method + ' ' + (req.url || req.targetUrl).slice(0, 40);
+      const name = prompt('Save request as:', defaultName);
+      if (!name || !name.trim()) return;
+      const parentId = getSelectedParentId();
+      await addCollectionNode(parentId, 'request', name.trim(), req);
+      if (parentId) expandedCollectionIds.add(parentId);
+      renderCollections();
+      // Switch to Collections tab
+      document.querySelector('.sidebar-tab[data-sidebar-tab="collections"]').click();
+      showToast('Request saved to collection');
+    }
+
+    function remapIds(nodes, parentId) {
+      return (nodes || []).map(n => {
+        const id = makeId();
+        return {
+          ...n,
+          id,
+          parentId,
+          children: remapIds(n.children, id)
+        };
+      });
+    }
+
+    function exportCollections() {
+      const text = JSON.stringify(collections, null, 2);
+      navigator.clipboard.writeText(text).then(() => showToast('Collections copied to clipboard'));
+    }
+
+    async function importCollections() {
+      let parsed;
+      try {
+        parsed = JSON.parse(importJson.value);
+      } catch {
+        showToast('Invalid JSON'); return;
+      }
+      let nodes = Array.isArray(parsed) ? parsed : (parsed.collections || []);
+      if (!Array.isArray(nodes) || nodes.length === 0) { showToast('No collections found'); return; }
+
+      nodes = remapIds(nodes);
+      const parentId = getSelectedParentId();
+      if (parentId) {
+        const found = findNode(collections, parentId);
+        if (found && found.node.type === 'folder') {
+          found.node.children = found.node.children || [];
+          found.node.children.push(...nodes);
+        } else {
+          collections.push(...nodes);
+        }
+      } else {
+        collections.push(...nodes);
+      }
+
+      await persistCollections();
+      renderCollections();
+      importModal.classList.add('hidden');
+      importJson.value = '';
+      document.querySelector('.sidebar-tab[data-sidebar-tab="collections"]').click();
+      showToast('Collections imported');
+    }
+
+    // ===== AUTH =====
+    window.handleGoogleCredentialResponse = async (response) => {
+      const token = response.credential;
+      try {
+        const res = await fetch('/api/auth/google', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ credential: token })
+        });
+        const data = await res.json();
+        if (data.user) {
+          currentUser = data.user;
+          const remote = await loadUserData();
+          history = remote.history || [];
+          collections = remote.collections || [];
+          renderAuth();
+          renderHistory();
+          renderCollections();
+          showToast(`Signed in as ${currentUser.name || currentUser.email || 'Google User'}`);
+        } else {
+          showToast(data.error || 'Sign in failed');
+        }
+      } catch (err) {
+        showToast('Sign in failed: ' + err.message);
+      }
+    };
+
+    async function signOut() {
+      await fetch('/api/auth/signout', { method: 'POST' });
+      currentUser = null;
+      const local = await loadUserData();
+      history = local.history || [];
+      collections = local.collections || [];
+      renderAuth();
+      renderHistory();
+      renderCollections();
+      showToast('Signed out');
+    }
+
+    function renderAuth() {
+      authContainer.innerHTML = '';
+      btnCloudConfig.classList.add('hidden');
+
+      if (!authConfig.enabled) {
+        authContainer.textContent = 'Local Guest';
+        return;
+      }
+
+      if (currentUser) {
+        btnCloudConfig.classList.remove('hidden');
+        const img = currentUser.picture ? `<img src="${escapeAttr(currentUser.picture)}" alt="">` : '';
+        authContainer.innerHTML = `
+          ${img}
+          <span>${escapeHtml(currentUser.name || currentUser.email || 'Google User')}</span>
+          <button class="btn-ghost" id="btn-signout">Sign out</button>
+        `;
+        document.getElementById('btn-signout').addEventListener('click', signOut);
+      } else {
+        authContainer.innerHTML = `<span id="user-name">Local Guest</span><div id="g_id_signin"></div>`;
+        if (window.google && google.accounts && google.accounts.id) {
+          google.accounts.id.initialize({
+            client_id: authConfig.clientId,
+            callback: window.handleGoogleCredentialResponse,
+            ux_mode: 'popup',
+            auto_select: false
+          });
+          google.accounts.id.renderButton(document.getElementById('g_id_signin'), {
+            theme: 'outline', size: 'medium', type: 'standard', text: 'signin_with', shape: 'rectangular'
+          });
+        }
+      }
+    }
+
+    async function initAuth() {
+      try {
+        const [cfgRes, meRes] = await Promise.all([
+          fetch('/api/auth/config'),
+          fetch('/api/auth/me')
+        ]);
+        authConfig = await cfgRes.json();
+        const me = await meRes.json();
+        currentUser = me.user || null;
+      } catch (err) {
+        authConfig = { enabled: false, clientId: '' };
+        currentUser = null;
+      }
+      renderAuth();
+      btnCloudConfig.classList.toggle('hidden', !currentUser);
+      btnSaveToCollection.classList.remove('hidden');
+    }
+
+    // ===== CLOUD CONFIG MODAL =====
+    function updateCloudFields() {
+      const provider = cloudProvider.value;
+      cloudFieldSupabase.classList.toggle('hidden', provider !== 'supabase');
+      cloudFieldPostgres.classList.toggle('hidden', provider === 'supabase');
+    }
+
+    function showCloudConfig() {
+      if (cloudConfig) {
+        cloudProvider.value = cloudConfig.provider || 'supabase';
+        cloudSupabaseUrl.value = cloudConfig.url || '';
+        cloudSupabaseKey.value = cloudConfig.key || '';
+        cloudSupabaseTable.value = cloudConfig.table || 'resmod_data';
+        cloudPostgresConnection.value = cloudConfig.connectionString || '';
+        cloudPostgresTable.value = cloudConfig.table || 'resmod_data';
+      }
+      updateCloudFields();
+      cloudModal.classList.remove('hidden');
+    }
+
+    function hideCloudConfig() { cloudModal.classList.add('hidden'); }
+
+    async function saveCloudConfig() {
+      const provider = cloudProvider.value;
+      const config = { provider, table: provider === 'supabase' ? cloudSupabaseTable.value.trim() : cloudPostgresTable.value.trim() };
+      if (provider === 'supabase') {
+        config.url = cloudSupabaseUrl.value.trim();
+        config.key = cloudSupabaseKey.value.trim();
+        if (!config.url || !config.key) { showToast('Enter Supabase URL and key'); return; }
+      } else {
+        config.connectionString = cloudPostgresConnection.value.trim();
+        if (!config.connectionString) { showToast('Enter connection string'); return; }
+      }
+      if (!config.table) config.table = 'resmod_data';
+      localStorage.setItem('resmod_cloud_config', JSON.stringify(config));
+      cloudConfig = config;
+      hideCloudConfig();
+
+      if (!currentUser) {
+        showToast('Cloud config saved. Sign in to sync.');
+        return;
+      }
+
+      try {
+        const remote = await loadUserData();
+        if (remote.history && remote.history.length) history = remote.history;
+        if (remote.collections && remote.collections.length) collections = remote.collections;
+        await saveUserData({ history, collections });
+        renderHistory();
+        renderCollections();
+        showToast('Cloud config saved and synced');
+      } catch (err) {
+        showToast('Cloud sync failed: ' + err.message);
+      }
+    }
+
+    cloudProvider.addEventListener('change', updateCloudFields);
+    document.getElementById('btn-cloud-config').addEventListener('click', showCloudConfig);
+    document.getElementById('btn-cloud-cancel').addEventListener('click', hideCloudConfig);
+    document.getElementById('btn-cloud-save').addEventListener('click', saveCloudConfig);
+
+    // ===== SIDEBAR TABS =====
+    document.querySelector('.sidebar-tabs').addEventListener('click', (e) => {
+      const btn = e.target.closest('.sidebar-tab');
+      if (!btn) return;
+      const tab = btn.dataset.sidebarTab;
+      document.querySelectorAll('.sidebar-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.sidebar-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('panel-' + tab).classList.add('active');
+    });
+
+    // ===== COLLECTION TOOLBAR =====
+    document.getElementById('btn-new-folder').addEventListener('click', () => promptAddFolder(getSelectedParentId()));
+    btnSaveToCollection.addEventListener('click', saveCurrentToCollection);
+    document.getElementById('btn-export-collection').addEventListener('click', exportCollections);
+    document.getElementById('btn-import-collection').addEventListener('click', () => { importModal.classList.remove('hidden'); });
+    document.getElementById('btn-import-cancel').addEventListener('click', () => { importModal.classList.add('hidden'); importJson.value = ''; });
+    document.getElementById('btn-import-confirm').addEventListener('click', importCollections);
+
+    // ===== GIS SCRIPT LOAD =====
+    document.getElementById('gis-script').addEventListener('load', () => {
+      if (authConfig.enabled && !currentUser) renderAuth();
+    });
+
     // ===== INIT =====
-    renderHistory();
-    setDefaultHeaders();
-    updateBadges();
+    (async function init() {
+      await initAuth();
+      const data = await loadUserData();
+      history = data.history || [];
+      collections = data.collections || [];
+      renderHistory();
+      renderCollections();
+      setDefaultHeaders();
+      updateBadges();
+    })();
 
     // Keyboard shortcut
     document.addEventListener('keydown', (e) => {
