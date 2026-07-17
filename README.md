@@ -1,6 +1,6 @@
 # ResMod
 
-ResMod is a lightweight REST/HTTP client inspired by Postman that runs locally as a Node.js application and it's designed for you Run Locally. It can work on cloud but you need to add your own security Like (Javascript Sanitize, Stress Testing and more). It provides a single-page web interface for building requests, sending them through a local proxy, and viewing responses clearly. Perfect for locally and private working on endpoints and sensitive information.
+ResMod is a lightweight REST/HTTP client inspired by Postman that runs locally as a Node.js application and it's designed for you Run Locally. It can work on cloud but you need to add your own security Like (Javascript Sanitize, Stress Testing and more). It provides a single-page web interface for building requests, sending them through a local proxy, and viewing responses clearly. It works perfect for locally and private working on endpoints and sensitive information.
 
 Repository: https://github.com/Amadoflimd/ResMod.git
 
