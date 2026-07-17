@@ -674,6 +674,75 @@
     .sidebar-panel { display: none; flex: 1; flex-direction: column; overflow: hidden; }
     .sidebar-panel.active { display: flex; }
 
+    /* ===== REQUEST TABS ===== */
+    .request-tabs-bar {
+      display: flex;
+      align-items: flex-end;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      padding: 4px 10px 0;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .request-tabs {
+      display: flex;
+      flex: 1;
+      overflow-x: auto;
+      gap: 2px;
+    }
+    .request-tab {
+      position: relative;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-bottom: none;
+      border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+      color: var(--text2);
+      font-size: 12px;
+      padding: 6px 22px 6px 10px;
+      cursor: pointer;
+      max-width: 160px;
+      min-width: 70px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      user-select: none;
+    }
+    .request-tab.active {
+      background: var(--bg);
+      color: var(--text);
+      border-bottom: 1px solid var(--bg);
+      margin-bottom: -1px;
+    }
+    .request-tab:hover { color: var(--text); }
+    .request-tab-name { pointer-events: none; }
+    .request-tab-close {
+      position: absolute;
+      right: 2px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: none;
+      color: var(--text3);
+      font-size: 14px;
+      line-height: 1;
+      padding: 2px 4px;
+      cursor: pointer;
+      border-radius: 3px;
+    }
+    .request-tab-close:hover { background: var(--surface2); color: var(--text); }
+    .request-tab-add {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text2);
+      border-radius: var(--radius-sm);
+      padding: 4px 8px;
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .request-tab-add:hover { background: var(--surface); color: var(--text); }
+
     /* ===== COLLECTIONS TREE ===== */
     .tree-item {
       display: flex;
@@ -782,6 +851,12 @@
 
     <!-- MAIN CONTENT -->
     <div class="content">
+
+      <!-- REQUEST TABS BAR -->
+      <div class="request-tabs-bar" id="request-tabs-bar">
+        <div class="request-tabs" id="request-tabs"></div>
+        <button class="request-tab-add" id="btn-add-request-tab" title="New request tab">+</button>
+      </div>
 
       <!-- REQUEST PANEL -->
       <div class="request-panel">
@@ -1016,6 +1091,10 @@
     let bodyType = 'none';
     let abortTimer = null;
 
+    let requestTabs = [{ id: 'tab-1', name: 'Untitled', state: null }];
+    let activeRequestTabId = 'tab-1';
+    let requestTabCounter = 1;
+
     let currentUser = null;
     let authConfig = { enabled: false, clientId: '' };
     let cloudConfig = JSON.parse(localStorage.getItem('resmod_cloud_config') || 'null');
@@ -1050,6 +1129,8 @@
     const authContainer = document.getElementById('auth-container');
     const btnSaveToCollection = document.getElementById('btn-save-to-collection');
     const btnCloudConfig = document.getElementById('btn-cloud-config');
+    const requestTabsEl = document.getElementById('request-tabs');
+    const btnAddRequestTab = document.getElementById('btn-add-request-tab');
     const collectionsTree = document.getElementById('collections-tree');
     const emptyCollections = document.getElementById('empty-collections');
     const cloudModal = document.getElementById('cloud-modal');
@@ -1354,6 +1435,8 @@
         btnSend.disabled = false;
         btnSend.textContent = 'Send';
         loadingIndicator.style.display = 'none';
+        captureRequestTabState();
+        renderRequestTabs();
       }
     }
 
@@ -1498,24 +1581,21 @@
     }
 
     document.getElementById('btn-new-request').addEventListener('click', () => {
-      activeHistoryIndex = -1;
-      methodSelect.value = 'GET';
-      urlInput.value = '';
-      timeoutInput.value = '30000';
-      setDefaultHeaders();
-      clearKvEditor(paramsEditor);
-      clearKvEditor(formDataEditor);
-      bodyTextarea.value = '';
-      document.querySelector('[data-type="none"]').click();
-      document.getElementById('auth-type').value = 'none';
-      document.getElementById('auth-type').dispatchEvent(new Event('change'));
-      currentResponse = null;
-      respContent.style.display = 'none';
-      respPlaceholder.style.display = 'flex';
-      updateBadges();
-      renderHistory();
+      const current = getActiveRequestTab();
+      if (current && current.state && !(current.state.url || '').trim()) {
+        newRequestTabDefaults();
+        current.state = null;
+        current.name = 'Untitled';
+        captureRequestTabState();
+        renderRequestTabs();
+        urlInput.focus();
+        return;
+      }
+      addRequestTab();
       urlInput.focus();
     });
+
+    document.getElementById('btn-add-request-tab').addEventListener('click', addRequestTab);
 
     // ===== SEND ON ENTER =====
     urlInput.addEventListener('keydown', (e) => {
@@ -1563,6 +1643,175 @@
     }
     updateMethodColor();
 
+    // ===== REQUEST TABS =====
+    function getActiveRequestTab() {
+      return requestTabs.find(t => t.id === activeRequestTabId) || requestTabs[0];
+    }
+
+    function makeRequestTabName(state) {
+      if (!state) return 'Untitled';
+      const url = (state.url || '').trim();
+      if (!url) return 'Untitled';
+      return (state.method || 'GET') + ' ' + (url.length > 28 ? url.slice(0, 28) + '…' : url);
+    }
+
+    function captureRequestTabState() {
+      const tab = getActiveRequestTab();
+      if (!tab) return;
+      const authType = document.getElementById('auth-type').value;
+      tab.state = {
+        method: methodSelect.value,
+        url: urlInput.value,
+        timeout: timeoutInput.value,
+        followRedirects: document.getElementById('follow-redirects').checked,
+        headers: getKvRows(headersEditor),
+        params: getKvRows(paramsEditor),
+        bodyType: bodyType,
+        bodyText: bodyTextarea.value,
+        formData: getKvRows(formDataEditor),
+        authType,
+        authBearer: document.getElementById('auth-bearer-token').value,
+        authBasic: {
+          user: document.getElementById('auth-basic-user').value,
+          pass: document.getElementById('auth-basic-pass').value
+        },
+        authApikey: {
+          name: document.getElementById('auth-apikey-name').value,
+          value: document.getElementById('auth-apikey-value').value,
+          in: document.getElementById('auth-apikey-in').value
+        },
+        response: currentResponse
+      };
+      tab.name = makeRequestTabName(tab.state);
+    }
+
+    function loadRequestTabState(state) {
+      if (!state) {
+        newRequestTabDefaults();
+        return;
+      }
+      methodSelect.value = state.method || 'GET';
+      urlInput.value = state.url || '';
+      timeoutInput.value = state.timeout || 30000;
+      document.getElementById('follow-redirects').checked = state.followRedirects !== false;
+
+      clearKvEditor(headersEditor);
+      (state.headers || []).forEach(h => createKvRow(headersEditor, 'Header Name', 'Header Value', h.key, h.value, h.enabled));
+
+      clearKvEditor(paramsEditor);
+      (state.params || []).forEach(p => createKvRow(paramsEditor, 'Param Name', 'Param Value', p.key, p.value, p.enabled));
+
+      clearKvEditor(formDataEditor);
+      (state.formData || []).forEach(f => createKvRow(formDataEditor, 'Field Name', 'Field Value', f.key, f.value, f.enabled));
+
+      bodyTextarea.value = state.bodyText || '';
+      const bt = state.bodyType || 'none';
+      const bodyBtn = document.querySelector(`#body-type-group [data-type="${bt}"]`);
+      if (bodyBtn) bodyBtn.click();
+
+      const authType = state.authType || 'none';
+      document.getElementById('auth-type').value = authType;
+      document.getElementById('auth-type').dispatchEvent(new Event('change'));
+      if (state.authBearer) document.getElementById('auth-bearer-token').value = state.authBearer;
+      if (state.authBasic) {
+        document.getElementById('auth-basic-user').value = state.authBasic.user || '';
+        document.getElementById('auth-basic-pass').value = state.authBasic.pass || '';
+      }
+      if (state.authApikey) {
+        document.getElementById('auth-apikey-name').value = state.authApikey.name || '';
+        document.getElementById('auth-apikey-value').value = state.authApikey.value || '';
+        document.getElementById('auth-apikey-in').value = state.authApikey.in || 'header';
+      }
+
+      currentResponse = state.response || null;
+      if (currentResponse) showResponse(currentResponse, null);
+      else { respContent.style.display = 'none'; respPlaceholder.style.display = 'flex'; }
+
+      activeHistoryIndex = -1;
+      selectedCollectionId = null;
+      updateBadges();
+      updateMethodColor();
+      renderHistory();
+      renderCollections();
+    }
+
+    function renderRequestTabs() {
+      requestTabsEl.innerHTML = '';
+      for (const tab of requestTabs) {
+        const el = document.createElement('div');
+        el.className = 'request-tab' + (tab.id === activeRequestTabId ? ' active' : '');
+        el.title = tab.name;
+        el.innerHTML = `<span class="request-tab-name">${escapeHtml(tab.name)}</span><button class="request-tab-close" title="Close tab">×</button>`;
+        el.addEventListener('click', (e) => {
+          if (e.target.closest('.request-tab-close')) return;
+          switchRequestTab(tab.id);
+        });
+        el.querySelector('.request-tab-close').addEventListener('click', (e) => closeRequestTab(tab.id, e));
+        requestTabsEl.appendChild(el);
+      }
+    }
+
+    function switchRequestTab(id) {
+      if (id === activeRequestTabId) return;
+      captureRequestTabState();
+      activeRequestTabId = id;
+      loadRequestTabState(getActiveRequestTab().state);
+      renderRequestTabs();
+    }
+
+    function closeRequestTab(id, event) {
+      event.stopPropagation();
+      if (requestTabs.length === 1) {
+        requestTabs[0].state = null;
+        requestTabs[0].name = 'Untitled';
+        newRequestTabDefaults();
+        renderRequestTabs();
+        return;
+      }
+      const idx = requestTabs.findIndex(t => t.id === id);
+      if (idx === -1) return;
+      const wasActive = requestTabs[idx].id === activeRequestTabId;
+      requestTabs.splice(idx, 1);
+      if (wasActive) {
+        activeRequestTabId = requestTabs[Math.max(0, idx - 1)].id;
+        loadRequestTabState(getActiveRequestTab().state);
+      }
+      renderRequestTabs();
+    }
+
+    function newRequestTabDefaults() {
+      methodSelect.value = 'GET';
+      urlInput.value = '';
+      timeoutInput.value = '30000';
+      document.getElementById('follow-redirects').checked = true;
+      setDefaultHeaders();
+      clearKvEditor(paramsEditor);
+      clearKvEditor(formDataEditor);
+      bodyTextarea.value = '';
+      document.querySelector('[data-type="none"]').click();
+      document.getElementById('auth-type').value = 'none';
+      document.getElementById('auth-type').dispatchEvent(new Event('change'));
+      currentResponse = null;
+      respContent.style.display = 'none';
+      respPlaceholder.style.display = 'flex';
+      activeHistoryIndex = -1;
+      selectedCollectionId = null;
+      updateBadges();
+      updateMethodColor();
+      renderHistory();
+      renderCollections();
+    }
+
+    function addRequestTab() {
+      captureRequestTabState();
+      requestTabCounter++;
+      const id = 'tab-' + requestTabCounter;
+      requestTabs.push({ id, name: 'Untitled', state: null });
+      activeRequestTabId = id;
+      newRequestTabDefaults();
+      renderRequestTabs();
+    }
+
     // ===== LOAD REQUEST =====
     function loadRequestData(reqData, respData) {
       methodSelect.value = reqData.method;
@@ -1598,8 +1847,10 @@
 
       activeHistoryIndex = -1;
       selectedCollectionId = null;
+      captureRequestTabState();
       updateBadges();
       updateMethodColor();
+      renderRequestTabs();
       renderHistory();
       renderCollections();
     }
@@ -2168,6 +2419,8 @@
       renderHistory();
       renderCollections();
       setDefaultHeaders();
+      captureRequestTabState();
+      renderRequestTabs();
       updateBadges();
     })();
 

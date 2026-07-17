@@ -226,7 +226,7 @@ For Supabase, create the same table through the Supabase dashboard and enable Ro
 ### Top bar
 
 - **Logo**: identifies the application as ResMod.
-- **+ New Request**: clears all fields to start a new request.
+- **+ New Request**: opens a new request tab.
 - **Clear History**: removes the history stored in the browser.
 
 ### Request panel
@@ -235,6 +235,16 @@ For Supabase, create the same table through the Supabase dashboard and enable Ro
 - **URL**: text field with autocomplete disabled. If no protocol is provided, `https://` is automatically prepended.
 - **Timeout (ms)**: maximum wait time, between 500 ms and 300 000 ms (default 30 000 ms).
 - **Follow Redirects**: enables or disables HTTP/HTTPS redirect following.
+
+### Request tabs
+
+A tab bar sits above the request panel. You can open multiple request tabs and switch between them without losing work:
+
+- Click **+ New Request** in the top bar (or the **+** button on the tab bar) to add a new tab.
+- Click a tab to switch to it.
+- Click **×** on a tab to close it.
+- Each tab keeps its own method, URL, headers, query params, body, auth settings, and response.
+- The tab title is updated automatically from the method and URL, or shows **Untitled** when empty.
 
 ### Configuration tabs
 
